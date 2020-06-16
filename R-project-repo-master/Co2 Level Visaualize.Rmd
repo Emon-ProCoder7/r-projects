@@ -1,0 +1,98 @@
+---
+title: "Visualizing CO2 Level Rise"
+author: "Md. Tabassum Hossain Emon ^[Author github: [Emon-ProCoder7](https://github.com/Emon-ProCoder7)  2. Author Linked-in:[Md Tabassum Hossain Emon](https://www.linkedin.com/in/md-tabassum-hossain-emon-ag007/)]"
+date: "5/24/2020"
+output: html_document
+---
+
+
+
+
+## **Visualizing Carbon Dioxide Levels**
+
+Climate scientists have measured the concentration of carbon dioxide (CO~2~) in the Earth’s atmosphere dating back thousands of years. Here I have explored increase in carbon dioxide levels over the past hundred years relative to the variability in levels of CO~2~ in the atmosphere over eight millennia.
+
+![Carbon dioxide hits a level not seen for 3 million years.](1.jpg)
+
+These data are calculated by analyzing ice cores. Over time, gas gets trapped in the ice of Antarctica. Scientists can take samples of that ice and see how much carbon is in it. The deeper you go into the ice, the farther back in time you can analyze!
+
+
+## **Datasets**
+
+
+
+- The first dataset comes from [World Data Center for Paleoclimatology, Boulder and NOAA Paleoclimatology Program](https://www1.ncdc.noaa.gov/pub/data/paleo/icecore/antarctica/epica_domec/edc-co2-2008.txt) and describes the carbon dioxide levels back thousands of years “Before Present” (BP) or before January 1, 1950.
+
+
+
+
+- The second dataset explores carbon dioxide starting at year zero up until the recent year of 2014. This dataset was compiled by the [Institute for Atmospheric and Climate Science (IAC)](https://iac.ethz.ch/) at Eidgenössische Technische Hochschule in Zürich, Switzerland.
+
+
+
+```{r message=FALSE, warning=FALSE, error=TRUE}
+# loading libraries and data
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+noaa_data <- read_csv ("carbon_dioxide_levels.csv")
+head(noaa_data) %>% 
+  kable()
+```
+
+
+![World Data Center for Paleoclimatology](2.jpg)
+
+## **Carbon Dioxide over Time Line Graph**
+
+
+
+Years before present, which is “a time scale used mainly in … scientific disciplines to specify when events occurred in the past… standard practice is to use 1 January 1950 as the commencement date of the age scale, reflecting the origin of practical radiocarbon dating in the 1950s. The abbreviation “BP” has alternatively been interpreted as “Before Physics” that is, before nuclear weapons testing artificially altered the proportion of the carbon isotopes in the atmosphere, making dating after that time likely to be unreliable.” This means that saying “the year 20 BP” would be the equivalent of saying “The year 1930.”
+
+
+
+
+```{r error=TRUE}
+options(scipen=10000) #removes scientific notation
+#NOAA Visualization:
+noaa_viz <- ggplot(data = noaa_data, aes(x = Age_yrBP, y = CO2_ppmv)) + 
+            geom_line() + 
+            scale_x_reverse(lim = c(800000,0)) +
+            labs(title = "Carbon Dioxide Levels From 8,000 to 136 Years BP", subtitle = "From World Data Center for Paleoclimatology and NOAA Paleoclimatology Program", x = "Years Before Today (0=1950)", y = "Carbon Dioxide Level (Parts Per Million)")
+noaa_viz
+```
+
+
+
+## **Carbon Dioxide Levels in the last Two Millennia**
+
+
+In the second block, I explored the second dataset containing the data for the last 2014 years.
+
+![ ](0.jpg)
+
+```{r message=FALSE, error=TRUE}
+#IAC Visualization
+iac_data <- read_csv ("yearly_co2.csv")
+head(iac_data) %>%
+  kable()
+iac_viz <- ggplot(data = iac_data, aes(x=year, y = data_mean_global)) +
+           geom_line() +
+           labs(title = "Carbon Dioxide Levels over Time",subtitle = "From Institute for Atmospheric and Climate Science (IAC).", x= "Year", y= "Carbon Dioxide Level (Parts Per Million)")
+iac_viz
+```
+
+
+Now here I highlighted the rise in carbon dioxide levels by adding a horizontal line that represents the maximum level in the first chart spanning over 8,000 years of carbon dioxide data. 
+
+
+
+
+```{r message=FALSE, error=TRUE}
+millenia_max <- max(noaa_data $ CO2_ppmv)
+print(millenia_max)
+iac_viz <- iac_viz +
+           geom_hline(aes(yintercept=millenia_max, linetype = "Historical CO2 Peak before 1950"))
+iac_viz
+```

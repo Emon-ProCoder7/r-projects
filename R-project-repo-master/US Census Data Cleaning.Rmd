@@ -1,0 +1,168 @@
+---
+title: "Cleaning US. Census Data"
+author:  "Md. Tabassum Hossain Emon ^[Author github: [Emon-ProCoder7](https://github.com/Emon-ProCoder7)  2. Author Linked-in:[Md Tabassum Hossain Emon](https://www.linkedin.com/in/md-tabassum-hossain-emon-ag007/)]"
+date: "5/23/2020"
+output: html_document
+---
+
+
+![US Census](Us census.jpg)
+
+[US Census Bureau](https://www.census.gov/), which collects census data and finds interesting insights from it. The data is spread across multiple csv files.
+
+
+I have used this data into R and taken it into reasonable shape so that some analysis can be performed.
+
+
+```{r message=FALSE, warning=FALSE, error=TRUE}
+# load libraries
+library(dplyr)
+library(readr)
+library(tidyr)
+
+```
+
+## **Merging csv's in One Dataframe**
+
+Concatenated all of the data frames in `df_list` into one data frame called `us_census`.
+
+```{r message=FALSE, warning=FALSE, error=TRUE}
+# loading CSVs
+files <- list.files(pattern="states_.*csv")
+head(files)
+df_list <- lapply(files,read_csv)
+us_census <- bind_rows(df_list)
+head(us_census)
+```
+
+
+```{r error=TRUE}
+# inspecting data
+colnames(us_census)
+str(us_census)
+
+```
+
+## **Removing and Reformating the Columns**
+
+Column `X1` stores meaningless information. Dropped the `X1` column from `us_census`.
+
+
+```{r error=TRUE}
+# drop X1 column
+us_census <- us_census %>%
+ select(-X1)
+head(us_census)
+
+```
+
+## **Preparaing Data Points for Calculation**
+
+there are 6 columns representing the population percentage for different races. The columns include the percent symbol `%`. The `Income` column also incudes a `$` symbol along with the number representing median income for a state.
+
+```{r error=TRUE}
+# removing % from race columns
+us_census <- us_census %>% 
+ mutate (Hispanic = gsub("\\%","",Hispanic)) %>% 
+ mutate (White = gsub("\\%","",White)) %>%
+ mutate (Black = gsub("\\%","",Black)) %>%
+ mutate (Native = gsub("\\%","",Native)) %>%
+ mutate (Asian = gsub("\\%","",Asian)) %>%
+ mutate (Pacific = gsub("\\%","",Pacific))
+
+head(us_census)
+
+
+
+
+
+```
+
+```{r error=TRUE}
+# removing $ from Income column
+us_census <- us_census %>%
+ mutate ( Income = gsub("\\$","",Income))
+head(us_census)
+
+```
+
+The `GenderPop` column appears to hold the male and female population counts. Separated this column at the `_` character to create two new columns: `male_pop` and `female_pop` & Removed these extra characters from the columns.
+
+
+```{r error=TRUE}
+# separating GenderPop column
+us_census <- us_census %>%
+ separate (GenderPop, c("male_pop","female_pop"),"_") %>% mutate(male_pop = gsub("\\M","",male_pop)) %>% mutate(female_pop = gsub("\\F","",female_pop))
+head(us_census) 
+
+
+```
+
+## **Conversion**
+
+Data type for these columns is still `chr`, or character. Then I Converted all of these columns (`Hispanic`,`White`,`Black`,`Native`,`Asian`,`Pacific`,`Income`,`male_pop`,`female_pop`) to have a data type of numeric. 
+
+```{r error=TRUE}
+# updating column data types
+us_census <- us_census %>%
+mutate(Hispanic = as.numeric (Hispanic),White = as.numeric(White),Black = as.numeric(Black),Native = as.numeric(Native),Asian = as.numeric(Asian),Pacific = as.numeric (Pacific),Income = as.numeric(Income),male_pop = as.numeric(male_pop),female_pop = as.numeric(female_pop))
+
+head(us_census)
+
+
+
+
+
+
+
+
+
+```
+
+```{r error=TRUE}
+# updating values of race columns
+us_census <- us_census %>%
+ mutate(Hispanic = Hispanic/100, White = White /100, Black = Black/100, Native = Native/100, Asian = Asian/100, Pacific = Pacific/100)
+head(us_census)
+
+
+
+
+```
+
+## **Removing Duplicate Rows**
+
+```{r error=TRUE}
+# checking for duplicate rows
+duplicates <- us_census %>%
+ duplicated() %>% table()
+print(duplicates)
+
+```
+
+Since there are duplicates, updated the value of `us_census` to be the `us_census` data frame with only unique/distinct rows.
+
+```{r error=TRUE}
+# removing duplicate rows
+us_census <- us_census %>%
+ distinct ()
+head(us_census)
+```
+
+```{r error=TRUE}
+# checking for duplicate rows
+updated_duplicate <- us_census %>%
+ duplicated() %>% table()
+print(updated_duplicate)
+
+
+```
+
+## **Tidy DataFrame**
+
+```{r error=TRUE}
+
+str(us_census)
+summary(us_census)
+us_census
+```

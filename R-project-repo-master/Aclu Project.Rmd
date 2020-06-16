@@ -1,0 +1,156 @@
+---
+title: "ACLU Mexican Child Separation Data Analysis"
+author: "Md. Tabassum Hossain Emon ^[Author github: [Emon-ProCoder7](https://github.com/Emon-ProCoder7)  2. Author Linked-in:[Md Tabassum Hossain Emon](https://www.linkedin.com/in/md-tabassum-hossain-emon-ag007/)]"
+date: "5/22/2020"
+output: html_document
+---
+
+
+
+
+In 2018, **United States** President Donald Trump enacted a family separation policy at the **US-Mexico** border. Under the policy, as immigrant families entered the United States, children were separated from the rest of their families by U.S. Immigration and Customs Enforcement (ICE) and brought to detention facilities around the country.
+
+
+Upon learning about this policy, the [American Civil Liberties Union (ACLU)](https://www.aclu.org/) filed a lawsuit against the administration. The government subsequently provided the ACLU with [data related to the immigrant children separated from their families at the border.](https://www.aclu.org/issues/immigrants-rights/immigrants-rights-and-detention/family-separation)
+
+
+
+
+
+
+!["Aren't grown ups supposed to keep kids safe"](Images/Clipart Aclu Sep.PNG)
+
+
+
+
+
+
+
+As a concerned citizen of the world, I was interested in researching the family separations and want to get a better understanding of how many children were separated and where they were taken. Using the government data provided to the ACLU, this project focuses on digging into the numbers and gain an understanding of the situation.
+
+
+
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+# load libraries
+library(readr)
+library(dplyr)
+
+```
+
+## **View of the dataframe**. 
+
+Each row of this data frame represents a single detention center, and the number stored in column n is the number of children held at each facility.
+
+```{r error=TRUE}
+# load data
+aclu <- read_csv("aclu_separations.csv")
+head(aclu)
+```
+
+```{r error=TRUE}
+summary(aclu)
+
+```
+
+## **Cleaning the Data**
+
+`addr` column contains the same information that is contained in the `program_city` and `program_state columns`.
+
+```{r error=TRUE}
+# select columns
+aclu <- aclu %>%
+ select(-addr)
+
+
+```
+
+```{r error=TRUE}
+# view columns
+colnames(aclu)
+```
+
+```{r error=TRUE}
+# rename columns
+aclu <- aclu %>%
+ rename(city = program_city, state = program_state, number_children = n,  longitude = lon, latitude = lat)
+
+colnames (aclu)
+
+
+
+
+```
+
+
+## **How Far ?**
+
+How far each detention center is from the United States-Mexico border, in terms of latitude change. Southernmost point of the border lies at a latitude of 25.83. I have created a variable `border_latitude` with the value `25.83`.
+
+```{r error=TRUE}
+# add column
+border_latitude <- 25.83
+aclu <- aclu %>%
+ mutate(lat_change_border = latitude - border_latitude)
+
+head(aclu)
+
+```
+
+```{r error=TRUE}
+# latitude change
+further_away <- aclu %>%
+ filter (lat_change_border > 15)
+
+further_away <- further_away %>%
+ arrange(desc(lat_change_border))
+
+further_away
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+## **Detention centers that held the largest number of children ?**
+
+![Children Separated From Teir Parents](Images/infographics-waffle.png)
+
+```{r error=TRUE}
+# number of children
+ordered_by_children <- aclu %>%
+ arrange(desc(number_children))
+
+head(ordered_by_children)
+
+
+```
+
+
+## **What's Happening in a Specific State?**
+
+According to the data, children have been separated from their parents to detention centers located in many states. I have checked **Washington.** The code can be reused to check other state as well, changing the variable value.
+
+![Facilities where separated children were held](Images/Map.PNG)
+
+```{r error=TRUE}
+# state analysis
+choosen_state <- ("WA")
+choosen_state_separations <- aclu %>%
+ filter(state == choosen_state) %>%
+  arrange(desc(number_children))
+
+ choosen_state_separations
+
+
+
+```
