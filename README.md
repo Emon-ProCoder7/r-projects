@@ -7,7 +7,7 @@ This repo will be frequently updated.
 
 **Data Preparation Major:**
   
-  - Aclu Mexican Child Detention Center Data Analysis.
-  - Tidying US Census Data
-  - Visualizing CO2 Level Rise
+  - [Aclu Mexican Child Detention Center Data Analysis.](https://rpubs.com/Emon-ProCoder7/r2355)
+  - [Tidying US Census Data](https://rpubs.com/Emon-ProCoder7/U7845)
+  - [Visualizing CO2 Level Rise](https://rpubs.com/Emon-ProCoder7/E3452)
 
