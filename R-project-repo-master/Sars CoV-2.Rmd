@@ -1,0 +1,241 @@
+---
+title: "Investigating the Coronavirus Pandemic"
+author: "Md. Tabassum Hossain Emon ^[Author github: [Emon-ProCoder7](https://github.com/Emon-ProCoder7)  2. Author Linked-in:[Md Tabassum Hossain Emon](https://www.linkedin.com/in/md-tabassum-hossain-emon-ag007/)]"
+date: "6/12/2020"
+output: html_document
+---
+
+![Covid-19 Project](1.jpg)
+
+
+# *Investigation of the Data*
+
+In this project I used data associated with the Coronavirus pandemic from 2020. Here are three datasets named `corona_confirmed.csv`, `corona_recovered.csv` and `corona_deaths.csv`. For the entirety of this project, I’ll be using these datasets. You can find more recent versions of this data at Johns Hopkins’ data resource.
+
+
+```{r message = FALSE}
+library(dplyr)
+library(readr)
+library(knitr)
+
+# data loading
+confirmed <- read_csv("corona_confirmed.csv")
+deaths <- read_csv("corona_deaths.csv")
+recovered <- read_csv("corona_recovered.csv")
+
+# Inspection of the data
+head(confirmed) %>% kable()
+head(deaths) %>% kable()
+head(recovered) %>% kable()
+```
+
+## Looking At March 22nd, 2020
+
+The format of these three data frames are all the same; each row contains information about the number of cases in a certain province, state, or country. Every column (other than the columns containing the latitude, longitude, and country name) represents a date. We have data starting on January 22nd, 2020 and ending on March 22nd, 2020.
+
+Let's find the total number of confirmed cases on `March 22nd, 2020`.
+
+```{r}
+# the total number of cases on March 22nd
+count_confirmed <- confirmed %>%
+                       select(`3/22/20`) %>%
+                        sum()
+count_confirmed
+```
+
+## Filtering By Values
+
+Let's start to filter the data a bit. Three tasks are performed :
+
+* How many confirmed cases are there in countries on March 22nd that are north of the equator? (If a country is north of the equator, its latitude is greater than `0`)
+* How many confirmed cases are there in March 22nd in Australia?
+
+
+```{r}
+# countries in the northern hemisphere
+northern_hemisphere_confirmed <- confirmed %>%
+                            filter(Lat>0.0) %>%
+                            select(`3/22/20`) %>%
+                            sum()
+northern_hemisphere_confirmed 
+
+# percentage
+northern_hemisphere_confirmed_percent <- (northern_hemisphere_confirmed/count_confirmed)*100
+northern_hemisphere_confirmed_percent
+
+
+# Filter for Australia cases
+australia_cases <- confirmed %>%
+                   filter(`Country/Region` == "Australia") %>%
+                   select(`3/22/20`) %>%
+                   sum()
+australia_cases
+
+#percentage
+australia_cases_percent <- (australia_cases / count_confirmed)*100
+australia_cases_percent
+```
+
+## Grouping By Country
+
+Here some countries have multiple rows of data. This happens when a country has information about specific states or provinces. While this information might be useful, it makes it a bit tricky to see the total number of cases by country.
+
+New data frame is created containing one row for every `Country/Region`. Every column of those new rows should have the sum of the total number of cases for that country for every day. 
+
+ In this case every column other than `Lat`, `Long`, and `Province/State` is needed. `summarize_at()` only works with numbers.
+ 
+After creating this new data frame inspection is done. To confirm correct calculation, I found the row for Australia and confirmed the number of cases on March 22nd. That matches my results from the previous step
+
+```{r}
+# Group by countries
+case_by_country <- confirmed %>%
+                      group_by(`Country/Region`) %>%
+                      summarize_at(vars(-Lat, -Long, -`Province/State`), sum)
+head(case_by_country)  %>% kable()
+
+# Checking calculation confirmation by Australia count
+australia_count <- case_by_country %>%
+                   filter(`Country/Region` == "Australia") %>%
+                   select(`3/22/20`) %>%
+                   sum()
+australia_count
+```
+![Covid-19](politico-friday-5-color.jpg)
+## Investigating The Recovered Dataset
+
+Same process of grouping by country using the recovered dataset is done again.
+- What percentage of the cases in the `US` have recovered on March 22nd?
+
+```{r}
+# Group by countries
+recovered_by_country <- recovered %>%
+                      group_by(`Country/Region`) %>%
+                      summarize_at(vars(-Lat, -Long, -`Province/State`), sum)
+US_recovered_22 <- recovered_by_country %>%
+                    filter(`Country/Region` == "US") %>%
+                    select(`3/22/20`)
+                    sum()
+US_recovered_22
+```
+
+Its a surprising result; are there really zero recovered cases in the US? Let's take a closer look at the `US` row in the `recovered` table.
+
+```{r}
+# Filtering to inspect the US row
+recovered_by_country %>%
+                    filter(`Country/Region` == "US")  %>% kable()
+```
+
+It seems like the number of recovered cases is steadily increasing to 17, until March 18th, when it suddenly drops back to 0. This is surprising, and not what is expected! 
+
+When I went back to Johns Hopkins' resource we found a note saying that the data had moved into a different file.
+
+
+We could report the maximum number of confirmed and recovered cases.
+
+
+```{r}
+# Finding the maximum number of confirmed and recovered cases
+max_recovered_US <- recovered_by_country %>%
+                    filter(`Country/Region` == "US") %>%
+                     select(-`Country/Region`) %>%
+                    max()
+max_recovered_US
+
+max_case_US <- case_by_country %>%
+                    filter(`Country/Region` == "US") %>%
+                     select(-`Country/Region`) %>%
+                    max()
+max_case_US
+```
+
+# Transposing Data Frames
+
+
+By transposing we could then find the maximum value of a country by simply selecting the appropriate column and finding the maximum value in that column. Let's try that! 
+
+```{r}
+# Transposing the data frame
+case_by_country <- case_by_country %>% 
+                       t() %>%
+                        as.data.frame()
+head(case_by_country) %>% kable()
+```
+
+
+### *Column Name Set*
+
+```{r message=FALSE, warning=FALSE}
+library(janitor)
+
+# Make the first row the column titles
+case_by_country <- case_by_country %>%
+                          row_to_names(row_number = 1 )
+```
+
+
+```{r}
+head(case_by_country,26)  %>% kable()
+```
+
+I printed the head of the data frame thats been just created. The columns are now of type `<fctr>`, or factor. This was one of the side effects of rotating the data frame.I turned all of these columns back into doubles.
+
+
+```{r}
+# Transforming the columns to numeric values
+case_by_country <- case_by_country %>%
+                           apply(MARGIN = 2, as.numeric) %>%
+                           as.data.frame()
+```
+
+```{r}
+head(case_by_country,25)  %>% kable()
+```
+
+![Sars CoV-2](ca_0207NID_Coronavirus_Temporary_Corridor_online.jpg)
+
+
+Let's once again find the maximum number of cases reported in the `US`.
+
+```{r}
+# Find the maximum number of confirmed cases in the US
+case_by_country %>%
+  select(US) %>%
+  max()
+```
+
+# Visualization
+
+I've build a line graph showing the number of confirmed cases over time for a particular country. To do this, first I need to add a new column to dataset to represent the date. The first day in our dataset was January 22nd. Let's represent that as day `1`. January 23rd would then be day `2`, and so on.
+
+```{r}
+# Adding the date column
+nrow(case_by_country)
+case_by_country <- case_by_country %>%
+                        mutate(date = 1:61)
+```
+
+```{r}
+head(case_by_country, 28) %>% kable()
+```
+
+![Let's now see the number of cases in Bangladesh over the days in the dataset.](bang.jpg)
+
+```{r}
+library(ggplot2)
+# Creating a line graph with date on the X axis and number of cases in Bangladesh on the Y axis
+case_by_country %>% ggplot(aes(x = date, y = Bangladesh)) +
+                      geom_line()
+```
+
+That line of code is pretty concise. Having a column containing only the confirmed cases from a particular country made this graph relatively simple to create.
+
+Finally, I did a bit of work to add title.
+
+```{r}
+# Adding a proper title, x label, and y label
+case_by_country %>% ggplot(aes(x = date, y = Bangladesh, color = Bangladesh )) +
+                      geom_line() +
+                      labs(x = "Number of days since January 22nd, 2020", y = "Number of confirmed cases", title = "Covid-19 Confirmed cases In Bangladesh")
+```
+
