@@ -1,0 +1,268 @@
+---
+title: "Museums and Nature Centers"
+author: "Md. Tabassum Hossain Emon ^[Author github: [Emon-ProCoder7](https://github.com/Emon-ProCoder7)  2. Author Linked-in:[Md Tabassum Hossain Emon](https://www.linkedin.com/in/md-tabassum-hossain-emon-ag007/)]"
+date: "6/21/2020"
+output: html_document
+---
+
+There are thousands of museums, aquariums, and zoos across the United States. This project focuses on visualizing the distribution of these institutions by geographic region, type, and revenue.
+
+
+
+![Institute of Museum and Library Services](1.jpg)
+
+
+
+This data compiled from administrative records from the [Institute of Museum and Library Services](https://www.imls.gov/), [IRS records](https://www.irs.gov/), and private foundation grantmaking records. This data reflects the status of each institution as of 2013. For each institution, here is information on its name, type, and location. Each institution also has a parent organization – for example, if a museum housed at a university, its parent organization is the university where it resides. Financial data on annual revenue is available at the parent organization level.
+
+```{r data, message=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(tidyr)
+library(plotrix)
+library(knitr)
+
+```
+
+# *Data Exploration*
+
+The `Museum.Name` column represents the name of each individual institution, while the `Legal.Name` column represents the name of each institution’s parent entity.
+
+```{r load, message=FALSE}
+# Loading file as data frame
+museums_df <- read.csv("museums.csv")
+```
+
+```{r inspect, message=FALSE}
+# Inspecting data frame
+head(museums_df) %>% kable()
+```
+
+## Museums by Type
+
+This data frame contains a column called `Museum.Type` describing what kind of museum each location is – a history museum, a zoo, an aquarium, etc.
+
+*Here I've created frequency barplot and tried to answer, which category is most common?*
+
+```{r barplot, message=FALSE}
+# Creating and printing bar plot by type
+museum_type <- ggplot(museums_df, aes(x = Museum.Type)) + geom_bar() + scale_x_discrete(labels = scales::wrap_format(8))
+museum_type
+```
+
+
+## Museum Or Not
+
+In the data frame there is a boolean (TRUE or FALSE) column, called Is.Museum. The `TRUE` category includes typical museums like art, history, and science museums. The `FALSE` category includes zoos, aquariums, nature preserves, and historic sites, which are included in this data but aren’t what most people think of when they hear the word “museum.”
+
+Here in the barplot that is classified.
+
+
+```{r barplot_museum, message=FALSE}
+# Creating and printing bar plot by museum vs non-museum
+museum_class <- ggplot(museums_df, aes(x= Is.Museum,fill = State..Administrative.Location.)) + 
+geom_bar() + 
+scale_x_discrete(
+  labels = c(
+    "TRUE" = "Museum",
+    "FALSE" = "Non-Museum"
+    )
+    )
+museum_class
+```
+
+
+##  Classifying by State
+
+Instead of looking at the distribution across the entire *United States*, just few states can be represented. 
+
+
+![USA_Museums](1_5.jpg)
+
+
+
+
+
+for example, I've chosen *IL*, *CA*, and *NY*.
+
+```{r barplot_type, message=FALSE}
+# Filtering data frame to select states
+museums_states <- museums_df %>%
+ filter(State..Administrative.Location. %in% c( "IL","CA","NY"))
+
+head(museums_states) %>% kable()
+# Creating and printing bar plot with facets
+museum_facet <- ggplot(museums_states, aes(x= Is.Museum, fill = State..Administrative.Location.)) + 
+geom_bar() + 
+scale_x_discrete(
+  labels = c(
+    "TRUE" = "Museum",
+    "FALSE" = "Non-Museum"
+    )
+    ) + 
+    facet_grid(cols = vars(State..Administrative.Location.))
+
+museum_facet
+```
+
+This data also contains information on each museum’s region, representing groups of states.
+
+And tried to answer, *How does the distribution of museum types vary by region?*
+
+```{r  message=TRUE}
+# Creating and printing stacked bar plot
+museums_stack <- ggplot(museums_df, aes(x = factor(Region.Code..AAM.), fill = Is.Museum)) +
+  geom_bar(position = "fill") +
+  scale_x_discrete(labels = c(
+    "1" = "New England",
+    "2" = "Mid-Atlantic",
+    "3" = "Southeastern",
+    "4" = "Midwest",
+    "5" = "Mountain Plains",
+    "6" = "Western"
+  )) + 
+  scale_fill_discrete(labels = c(
+    "TRUE" = "Museum",
+    "FALSE" = "Non-Museum"
+  )) + scale_y_continuous (labels = scales::percent_format()) +
+  labs(title = "Museum Types by Region", x = "Region", y = "Percentage of Total", fill = "Type")
+
+museums_stack
+```
+
+# *Exploring Museums by Revenue*
+
+Now lets switch to look at *how much money each institution brought in* and *how that varies across geographies*. Because here are only revenue data at the parent organization level,lets first filter the dataset to omit any duplicates. Next, i've created a few data frames from the starting data to look at different groups of museums by *how much money they bring in*.
+
+![IRS](2.jpg)
+
+`museums_small_df` that retains only museums with `Annual.Revenue` less than $1,000,000.
+
+And `museums_large_df` that retains only museums with `Annual.Revenue` greater than $1,000,000,000.
+
+```{r process, message=FALSE}
+# Filtering data frame
+museums_revenue_df <- museums_df %>%
+  distinct(Legal.Name, .keep_all = TRUE) %>%
+   filter(Annual.Revenue>0)
+
+# Filtering for only small museums
+museums_small_df <- museums_revenue_df %>%
+   filter(Annual.Revenue<1000000)
+
+# Filtering for only large museums
+museums_large_df <- museums_revenue_df %>%
+   filter(Annual.Revenue > 1000000000)
+```
+
+
+
+```{r histogram, message=FALSE}
+# Creating and printing histogram
+revenue_histogram <- ggplot(museums_small_df, aes(x = Annual.Revenue)) +
+  geom_histogram() +
+  scale_x_continuous(labels = scales::dollar_format())
+
+revenue_histogram
+```
+
+
+Now, let’s look at the *variation in revenue* for large museums by region.
+
+
+```{r boxplot, message=FALSE}
+# Creating and printing boxplot
+
+revenue_boxplot <- ggplot(museums_large_df, aes(x = factor(Region.Code..AAM.), y = Annual.Revenue)) +
+  geom_boxplot() +
+  scale_x_discrete(labels = c(
+    "1" = "New England",
+    "2" = "Mid-Atlantic",
+    "3" = "Southeastern",
+    "4" = "Midwest",
+    "5" = "Mountain Plains",
+    "6" = "Western"
+  )
+  ) +
+  coord_cartesian(ylim = c(1e9, 3e10)) +
+  scale_y_continuous(labels = function(x) paste0("$", x/1e9, "B") )
+  
+  
+  
+revenue_boxplot
+```
+
+## Revenue Across All Museums
+
+Now, let’s take a look at revenue across all museums in the dataset.
+
+
+```{r mean, message=FALSE}
+# Creating and printing bar plot with means
+revenue_barplot <- ggplot(museums_revenue_df, aes(x = factor(Region.Code..AAM.), y = Annual.Revenue)) +
+  geom_bar(stat ="summary", fun = "mean") +
+  labs(title = "Mean Annual Revenue by Region", x = "Region", y = "Mean Annual Revenue") +
+  scale_x_discrete(labels = c(
+    "1" = "New England",
+    "2" = "Mid-Atlantic",
+    "3" = "Southeastern",
+    "4" = "Midwest",
+    "5" = "Mountain Plains",
+    "6" = "Western"
+  )
+  ) +
+  scale_y_continuous(labels = function(x) paste0("$", x/1e3, "K"))
+
+
+revenue_barplot
+```
+
+## Error Bar
+
+
+Finally, let’s add some error bars to the means. Calculation of standard errors before creating the plot has been done. And tried to answer,
+
+*Which regions have more or less variability around their mean revenues?*
+
+
+```{r mean_errorbar, message=FALSE}
+# Calculation of means and standard errors
+museums_error_df <- museums_revenue_df %>%
+  group_by(Region.Code..AAM.) %>%
+  summarize(Mean.Revenue = mean(Annual.Revenue),
+            Mean.SE = std.error(Annual.Revenue)) %>%
+  mutate(SE.Min = Mean.Revenue - Mean.SE,
+         SE.Max = Mean.Revenue + Mean.SE)
+
+museums_error_df
+
+# creating and printing bar plot with means and standard errors
+revenue_errorbar <- ggplot(museums_error_df, aes(x = factor(Region.Code..AAM.), y = Mean.Revenue)) +
+  geom_col() +
+  labs(title = "Mean Annual Revenue by Region", x = "Region", y = "Mean Annual Revenue") +
+  scale_x_discrete(labels = c(
+    "1" = "New England",
+    "2" = "Mid-Atlantic",
+    "3" = "Southeastern",
+    "4" = "Midwest",
+    "5" = "Mountain Plains",
+    "6" = "Western"
+  )
+  ) +
+  scale_y_continuous(labels = function(x) paste0("$", x/1e3, "K")) +
+  geom_errorbar ( 
+    aes(
+                ymin = SE.Min,
+                ymax = SE.Max,
+                width = 0.2
+  )
+  )
+
+
+
+revenue_errorbar
+
+```
+
