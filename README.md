@@ -1,3 +1,5 @@
+![Author](https://img.shields.io/badge/author-MdTabassumHossainEmon-orange)
+
 # **R Data Analysis Projects**
 
 
